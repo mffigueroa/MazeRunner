@@ -4,10 +4,8 @@ from pygame.locals import *
 
 pygame.init()
 
-# set up the window
-
+# Set up the window 90% relative to the screen resolution
 infoObject = pygame.display.Info()
-
 screenWidth = 2**int(log(infoObject.current_w * 0.9, 2))
 screenHeight = 2**int(log(infoObject.current_h * 0.9, 2))
 screenCenter = (screenWidth / 2, screenHeight / 2)
