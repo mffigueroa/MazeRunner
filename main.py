@@ -1,5 +1,5 @@
 import pygame, sys
-from math import pi
+from math import *
 from pygame.locals import *
 
 pygame.init()
@@ -29,10 +29,22 @@ fpsClock = pygame.time.Clock()
 animIndex = 0
 printed = False
 
-#fontObj = pygame.font.Font('freesansbold.ttf', 32)
-#textSurfaceObj = fontObj.render('Hello world!', True, GREEN, BLUE)
-#textRectObj = textSurfaceObj.get_rect()
-#textRectObj.center = (200, 150)
+fontObj = pygame.font.Font('freesansbold.ttf', 32)
+
+def GetTextSurf(text):
+    textSurfaceObj = fontObj.render(text, True, GREEN, BLUE)
+    textRectObj = textSurfaceObj.get_rect()
+    textRectObj.center = (screenWidth - textSurfaceObj.get_width(), screenHeight - textSurfaceObj.get_height())
+    return textSurfaceObj, textRectObj
+
+def ScreenToPolar(x, y):
+    newX = x - screenWidth / 2.0
+    newY = screenHeight / 2.0 - y
+    r = sqrt(newX**2 + newY**2)
+    th = atan2(newY, newX)
+    return r, th
+
+mousex, mousey = 0, 0
 
 # run the game loop
 while True:
@@ -44,7 +56,13 @@ while True:
             mousex, mousey = event.pos
 
     DISPLAYSURF.fill(WHITE)
-    #DISPLAYSURF.blit(textSurfaceObj, textRectObj)
+
+    mouseRadius, mouseAngle = ScreenToPolar(mousex, mousey)
+    mouseAngle *= 180./pi
+    mousePosStr = 'Screen: (%d, %d)   Polar: (%f, %f)' % (mousex, mousey, mouseRadius, mouseAngle)
+    #mousePosStr = 'Screen: (%d, %d)   Polar: (%f, %f)' % (mousex, mousey, mousex - , mouseAngle)
+
+    DISPLAYSURF.blit(*GetTextSurf(mousePosStr))
 
     levelNum = 1
     for level in gaps:
