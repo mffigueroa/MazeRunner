@@ -5,8 +5,11 @@ from pygame.locals import *
 pygame.init()
 
 # set up the window
-screenWidth = 1280
-screenHeight = 1024
+
+infoObject = pygame.display.Info()
+
+screenWidth = 2**int(log(infoObject.current_w * 0.9, 2))
+screenHeight = 2**int(log(infoObject.current_h * 0.9, 2))
 screenCenter = (screenWidth / 2, screenHeight / 2)
 
 DISPLAYSURF = pygame.display.set_mode((screenWidth, screenHeight), 0, 32)
@@ -42,6 +45,10 @@ def ScreenToPolar(x, y):
     newY = screenHeight / 2.0 - y
     r = sqrt(newX**2 + newY**2)
     th = atan2(newY, newX)
+
+    if newY < 0:
+        th += 2*pi
+
     return r, th
 
 mousex, mousey = 0, 0
