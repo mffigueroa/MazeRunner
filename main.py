@@ -20,8 +20,6 @@ pygame.display.set_caption('MazeRunner')
 openingGap = 12.*pi/180.
 gaps = [[x, pi/2 + x, pi + x, 3*pi/2 + x] for x in [0, pi*10./180, pi*20./180, pi*25./180, pi*30./180, pi*15./180, pi*25./180]]
 
-clickedGaps = set([])
-
 levelSeparation = int(1024 * (153.1 - 13.3*len(gaps)) / smallestDimension) #85#int(smallestDimension*0.9 / len(gaps))
 arcWidth = int((smallestDimension*0.9 - 2*(len(gaps) * levelSeparation)) / len(gaps))
 
@@ -69,59 +67,61 @@ def PolarToScreen(r, th):
     return x, y
 
 mousex, mousey = 0, 0
+currGameLevel = 1
 
-currBotLevel = 0
-currBotGap = random.randint(0, len(gaps[0]) - 1)
-currBotRad = 0
-botSpeed = 0.5
+def ResetLevel():
+    global currBotLevel
+    global currBotGap
+    global currBotRad
+    global botSpeed
+    global botRadius
+    global currBlockingGapSelected
+    global blockedGapsRenderInfo
+    global blockedGaps
+
+    currBotLevel = 0
+    currBotGap = random.randint(0, len(gaps[0]) - 1)
+    currBotRad = 0
+    botSpeed = 0.5 + 0.1 * currGameLevel
+    botRadius = 10
+    currBlockingGapSelected = 0
+    blockedGapsRenderInfo = set([])
+    blockedGaps = set([])
+
+blockedGapsRenderInfo = set([])
+ResetLevel()
 
 # run the game loop
 while True:
+    # check for any event updates
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
-        elif event.type == MOUSEMOTION:
-            mousex, mousey = event.pos
-        elif event.type == MOUSEBUTTONUP:
-            clickedMouseX, clickedMouseY = event.pos
-            mouseRadius, mouseAngle = ScreenToPolar(clickedMouseX, clickedMouseY)
-            closestLevel = int((mouseRadius + arcWidth) / levelSeparation)
-            closestLevelMax = closestLevel * levelSeparation
-            closestLevelMin = closestLevelMax - arcWidth
+        elif event.type == KEYUP:
+            if event.key == K_LEFT:
+                currBlockingGapSelected = (currBlockingGapSelected + 1) % len(gaps[currBotLevel])
+            elif event.key == K_RIGHT:
+                currBlockingGapSelected = (currBlockingGapSelected - 1) % len(gaps[currBotLevel])
+            elif event.key == K_SPACE:
+                blockedGapsRenderInfo.add(((currBotLevel + 1) * levelSeparation, gaps[currBotLevel][currBlockingGapSelected]))
+                blockedGaps.add(currBlockingGapSelected)
 
-            print 'Closest Level: %d' % closestLevel
-            print 'Closest Level Min: %d' % closestLevelMin
-            print 'Closest Level Max: %d' % closestLevelMax
-
-            if mouseRadius >= closestLevelMin and mouseRadius <= closestLevelMax:
-                print 'Detected collision.'
-                closestLevel -= 1
-                if closestLevel < len(gaps):
-                    for gapStart in gaps[closestLevel]:
-                        print 'Checking against %f gap at: %f deg' % (mouseAngle * 180./pi, gapStart * 180./pi)
-                        if gapStart <= mouseAngle and mouseAngle <= gapStart + openingGap:
-                            closestLevel += 1
-                            print 'Detected gap collision'
-                            print 'Adding clicked gap:'
-                            print '\tRadius: %f' % (closestLevel * levelSeparation)
-                            print '\tGap Start: %f' % (gapStart * 180./pi)
-                            clickedGaps.add((closestLevel * levelSeparation, gapStart, closestLevel))
-                            break
+                if currBlockingGapSelected == currBotGap:
+                    print 'Blocked bot gap'
+                    if len(blockedGaps) == len(gaps[currBotLevel]):
+                        currGameLevel += 1
+                        ResetLevel()
+                    else:
+                        print 'Still open gaps'
+                        while currBotGap in blockedGaps:
+                            currBotGap = random.randint(0, len(gaps[currBotLevel]) - 1)
+                            print 'Trying gap #%d' % currBotGap
+                        print 'Got new gap'
 
     DISPLAYSURF.fill(WHITE)
 
-    mouseRadius, mouseAngle = ScreenToPolar(mousex, mousey)
-
-    newMouseX, newMouseY = PolarToScreen(mouseRadius, mouseAngle)
-
-    mouseAngle *= 180./pi
-    mousePosStr = 'Screen: (%d, %d)   Polar: (%f, %f)' % (mousex, mousey, mouseRadius, mouseAngle)
-
-    DISPLAYSURF.blit(*GetTextSurf(mousePosStr))
-
-    pygame.draw.circle(DISPLAYSURF, GREEN, (int(newMouseX), int(newMouseY)), 15)
-
+    # render the maze
     levelNum = 1
     for level in gaps:
         if not printed:
@@ -144,23 +144,38 @@ while True:
             pygame.draw.arc(DISPLAYSURF, BLUE, rect, startAngle, stopAngle, arcWidth)
         levelNum += 1
 
-    for gap in clickedGaps:
+    # draw all the currently blocked off gaps
+    for gap in blockedGapsRenderInfo:
         rect = (screenCenter[0] - gap[0], screenCenter[1] - gap[0], gap[0] * 2, gap[0] * 2)
         pygame.draw.arc(DISPLAYSURF, RED, rect, gap[1], gap[1] + openingGap, arcWidth)
 
+    # draw the currently selected blocking gap
+    currBlockingGapRadius = (currBotLevel + 1) * levelSeparation
+    currBlockingGapSelectedRect = (screenCenter[0] - currBlockingGapRadius,
+                                   screenCenter[1] - currBlockingGapRadius,
+                                   currBlockingGapRadius * 2, currBlockingGapRadius * 2)
+    currBlockingGapSelectedStartAngle = gaps[currBotLevel][currBlockingGapSelected]
+    pygame.draw.arc(DISPLAYSURF, GREEN,
+                    currBlockingGapSelectedRect, currBlockingGapSelectedStartAngle,
+                    currBlockingGapSelectedStartAngle + openingGap, arcWidth)
+
+    # draw the bot as it currently is
     botAngle = gaps[currBotLevel][currBotGap]
     botX, botY = PolarToScreen(currBotRad, botAngle)
-    pygame.draw.circle(DISPLAYSURF, GREEN, (int(botX), int(botY)), 5)
+    pygame.draw.circle(DISPLAYSURF, GREEN, (int(botX), int(botY)), botRadius)
 
+    # update the bot's state
     currBotRad += botSpeed
 
-    if currBotRad > (currBotLevel + 1) * levelSeparation:
+    if currBotRad - botRadius > (currBotLevel + 1) * levelSeparation:
+        blockedGaps = set([])
         if currBotLevel + 1 < len(gaps):
             currBotLevel += 1
             currBotGap = random.randint(0, len(gaps[currBotLevel]) - 1)
         else:
             botSpeed = 0
 
+    # render the frame
     printed = True
     animIndex = (animIndex + 1) % 4
     pygame.display.update()
