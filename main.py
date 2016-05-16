@@ -10,14 +10,22 @@ infoObject = pygame.display.Info()
 
 screenWidth = 2**int(log(infoObject.current_w * 0.9, 2))
 screenHeight = 2**int(log(infoObject.current_h * 0.9, 2))
+smallestDimension = min(screenWidth, screenHeight)
 screenCenter = (screenWidth / 2, screenHeight / 2)
 
-DISPLAYSURF = pygame.display.set_mode((screenWidth, screenHeight), 0, 32)
-pygame.display.set_caption('Drawing')
+print 'Dimensions: (%d, %d)' % (screenWidth, screenHeight)
 
-openingGap = 25.*pi/360.
-levelSeparation = 100
-gaps = [[x, pi/2 + x, pi + x, 3*pi/2 + x] for x in [0, pi*20./360, pi*40./360, pi*60./360]]
+DISPLAYSURF = pygame.display.set_mode((screenWidth, screenHeight), 0, 32)
+pygame.display.set_caption('MazeRunner')
+
+openingGap = 12.*pi/180.
+gaps = [[x, pi/2 + x, pi + x, 3*pi/2 + x] for x in [0, pi*10./180, pi*20./180, pi*25./180, pi*30./180, pi*15./180, pi*25./180]]
+levelSeparation = int(1024 * (153.1 - 13.3*len(gaps)) / smallestDimension) #85#int(smallestDimension*0.9 / len(gaps))
+arcWidth = int((smallestDimension*0.9 - 2*(len(gaps) * levelSeparation)) / len(gaps))
+
+print levelSeparation
+print arcWidth
+print (smallestDimension*0.9 - (len(gaps) * levelSeparation)) / len(gaps)
 
 # set up the colors
 BLACK = (  0,   0,   0)
@@ -67,7 +75,6 @@ while True:
     mouseRadius, mouseAngle = ScreenToPolar(mousex, mousey)
     mouseAngle *= 180./pi
     mousePosStr = 'Screen: (%d, %d)   Polar: (%f, %f)' % (mousex, mousey, mouseRadius, mouseAngle)
-    #mousePosStr = 'Screen: (%d, %d)   Polar: (%f, %f)' % (mousex, mousey, mousex - , mouseAngle)
 
     DISPLAYSURF.blit(*GetTextSurf(mousePosStr))
 
@@ -90,7 +97,7 @@ while True:
                 print 'Stop Angle: %f deg, (%f)' % (stopAngle * 180./pi, stopAngle)
                 print 'Radius: %d' % radius
                 print 'Rect: %s' % repr(rect)
-            pygame.draw.arc(DISPLAYSURF, BLUE, rect, startAngle, stopAngle, 10)
+            pygame.draw.arc(DISPLAYSURF, BLUE, rect, startAngle, stopAngle, arcWidth)
         levelNum += 1
 
     printed = True
